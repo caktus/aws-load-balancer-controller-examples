@@ -1,0 +1,16 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+iam:
+  withOIDC: true
+
+metadata:
+  name: aws-lb-cluster
+  region: us-east-2
+  version: "1.31"
+
+nodeGroups:
+  - name: ng-1
+    instanceType: t3a.medium
+    desiredCapacity: 1
+    availabilityZones: ["eu-east-2a"]
