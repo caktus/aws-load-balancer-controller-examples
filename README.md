@@ -108,11 +108,24 @@ Install the cert-manager issuer:
 $ kubectl apply -f cert-manager-issuer.yaml
 ```
 
-# Deploy the echoserver resources
+## Deploy the echoserver resources
 
 ```sh
 $ kubectl create ns echoserver
 $ kubectl apply -f echoserver1.yaml
 $ kubectl apply -f echoserver2.yaml
 $ kubectl apply -f echoserver-ingress.yaml
+```
+
+```sh
+curl -v https://echoserver2.saguaro.caktustest.net/ 2>&1 | grep -i Certificate
+* TLSv1.2 (IN), TLS handshake, Certificate (11):
+* Server certificate:
+*  SSL certificate verify ok.
+```
+
+## Delete the cluster
+
+```sh
+$ eksctl delete cluster -f cluster.yaml
 ```
