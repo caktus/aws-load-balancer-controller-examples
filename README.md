@@ -1,5 +1,17 @@
 # Migrating to the AWS Load Balancer Controller
 
+Caktus uses the [NGINX Ingress
+Controller](https://github.com/kubernetes/ingress-nginx) to manage ingress
+traffic in our Kubernetes clusters. In AWS, we use a [Network load balancer
+(NLB)](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html)
+to expose the controller behind a Service of ``Type=LoadBalancer``. By default,
+this uses the legacy "in-tree" (within ingress-nginx itself) service load balancer for
+AWS NLB. However, it is now recommended to use the [AWS Load Balancer
+Controller](https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/), a separate
+Kubernetes controller that provisions AWS load balancers for Kubernetes services
+and ingress resources. This controller is the successor to the AWS ALB Ingress
+Controller and is now the recommended way to manage AWS load balancers in
+Kubernetes.
 
 ## Prerequisites
 
@@ -123,6 +135,16 @@ curl -v https://echoserver2.saguaro.caktustest.net/ 2>&1 | grep -i Certificate
 * Server certificate:
 *  SSL certificate verify ok.
 ```
+
+## External ALB
+
+```sh
+aws elbv2 create-load-balancer \
+    --name my-load-balancer \
+    --type network \
+    --subnets subnet-0e3f5cac72EXAMPLE
+```
+
 
 ## Delete the cluster
 

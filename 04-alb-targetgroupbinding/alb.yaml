@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS CloudFormation Template: LB for EKS Cluster'
+Parameters:
+  LBScheme:
+    AllowedValues:
+      - internet-facing
+      - internal
+    Default: internet-facing
+    Description: The type of load balancer to create
+    Type: String
+  SubnetA:
+    Default: subnet-01e2432f0a0b86dfc
+    Type: String
+  SubnetB:
+    Default: subnet-01bf7181d64240211
+    Type: String
+  VpcId:
+    Default: vpc-087ccad6480af2d0a
+    Type: String
+Resources:
+  ClusterLB:
+    Properties:
+      Name: !Join
+        - '-'
+        - - !Ref 'AWS::StackName'
+          - cluster-lb
+      Scheme: !Ref 'LBScheme'
+      SecurityGroups:
+        - !GetAtt 'FrontEndSecurityGroup.GroupId'
+      Subnets:
+        - !Ref 'SubnetA'
+        - !Ref 'SubnetB'
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+  FrontEndSecurityGroup:
+    Properties:
+      GroupDescription: Inbound security group for the cluster
+      SecurityGroupIngress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '80'
+          IpProtocol: tcp
+          ToPort: '80'
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '443'
+          IpProtocol: tcp
+          ToPort: '443'
+      VpcId: !Ref 'VpcId'
+    Type: AWS::EC2::SecurityGroup
+  ListenerHTTPS:
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref 'TargetGroupHTTPS'
+          Type: forward
+      LoadBalancerArn: !Ref 'ClusterLB'
+      Port: '443'
+      Protocol: HTTP
+    Type: AWS::ElasticLoadBalancingV2::Listener
+  TargetGroupHTTPS:
+    Properties:
+      Name: target-group-https
+      Port: '443'
+      Protocol: HTTP
+      VpcId: !Ref 'VpcId'
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+
