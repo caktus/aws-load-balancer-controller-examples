@@ -1,2 +1,4 @@
 bin/
 .kube/
+.envrc
+.direnv/
