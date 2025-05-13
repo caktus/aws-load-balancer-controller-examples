@@ -1,6 +1,10 @@
 <!-- omit in toc -->
 # Migrating to the AWS Load Balancer Controller
 
+- [Introduction](#introduction)
+- [Prerequisites](#prerequisites)
+- [Create and configure the EKS cluster](#create-and-configure-the-eks-cluster)
+    - [Install the AWS Load Balancer Controller](#install-the-aws-load-balancer-controller)
 - [Scenarios](#scenarios)
   - [1. Application Load Balancer (ALB) with combined Ingress and ACM certificates](#1-application-load-balancer-alb-with-combined-ingress-and-acm-certificates)
     - [Create resources](#create-resources)
@@ -13,7 +17,7 @@
   - [Delete the cluster](#delete-the-cluster)
 
 
-## Introduction
+# Introduction
 
 Caktus uses the [NGINX Ingress
 Controller](https://github.com/kubernetes/ingress-nginx) to manage ingress
@@ -34,7 +38,7 @@ and ingress resources. This controller is the successor to the AWS ALB Ingress
 Controller and is now the recommended way to manage AWS load balancers in
 Kubernetes.
 
-## Prerequisites
+# Prerequisites
 
 Add the following environment variables to your shell:
 
@@ -76,7 +80,7 @@ Client Version: v1.31.8
 Kustomize Version: v5.4.2
 ```
 
-## Create and configure the EKS cluster
+# Create and configure the EKS cluster
 
 Create a cluster with `eksctl`:
 
