@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: echoserver
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: echoserver4
+  namespace: echoserver
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: NodePort
+  selector:
+    app: echoserver4
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echoserver4
+  namespace: echoserver
+spec:
+  selector:
+    matchLabels:
+      app: echoserver4
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: echoserver4
+    spec:
+      containers:
+      - image: k8s.gcr.io/e2e-test-images/echoserver:2.5
+        imagePullPolicy: Always
+        name: echoserver
+        ports:
+        - containerPort: 8080
+---
+apiVersion: elbv2.k8s.aws/v1beta1
+kind: TargetGroupBinding
+metadata:
+  name: echoserver4-tgb
+  namespace: echoserver
+spec:
+  networking:
+    ingress:
+    - from:
+      - securityGroup:
+          groupID: sg-05bf45e8cb4f315d6
+      ports:
+      - port: 80
+        protocol: TCP
+  serviceRef:
+    name: echoserver4
+    port: 80
+  targetGroupARN: arn:aws:elasticloadbalancing:us-east-2:472354598015:targetgroup/target-group-https/a9aa36bbe4394946
