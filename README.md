@@ -127,11 +127,6 @@ $ helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
     --set serviceAccount.name=aws-load-balancer-controller
 ```
 
-Verify the installation:
-
-```sh
-```
-
 # Scenarios
 
 ## 1. Application Load Balancer (ALB) with combined Ingress and ACM certificates
