@@ -6,10 +6,11 @@ traffic in our Kubernetes clusters. In AWS, we use a [Network load balancer
 (NLB)](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html)
 to expose the controller behind a Service of ``Type=LoadBalancer``. By default,
 this uses the legacy "in-tree" (within ingress-nginx itself) service load
-balancer for AWS NLB. Additionally, the "in-tree" controller doesn't support
-associating an EC2 security group with the network load balancer. This introduces a 
-challenge when wanting to use a WAF or other security group-based
-security features.
+balancer to create and manage the NLB, but the controller doesn't support
+[associating an EC2 security
+group](https://github.com/kubernetes/ingress-nginx/issues/10302#issuecomment-1686282013)
+with the network load balancer. This introduces a challenge when wanting to use
+a WAF or other security group-based features.
 
 However, it is now recommended to use the [AWS Load Balancer
 Controller](https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/), a separate
@@ -17,8 +18,6 @@ Kubernetes controller that provisions AWS load balancers for Kubernetes services
 and ingress resources. This controller is the successor to the AWS ALB Ingress
 Controller and is now the recommended way to manage AWS load balancers in
 Kubernetes.
-
-
 
 ## Prerequisites
 
