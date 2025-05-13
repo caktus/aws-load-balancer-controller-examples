@@ -14,7 +14,7 @@
     - [Validate resources](#validate-resources-1)
   - [3. Application Load Balancer (ALB) with TargetGroupBinding (IN PROGRESS)](#3-application-load-balancer-alb-with-targetgroupbinding-in-progress)
     - [Create resources](#create-resources-2)
-  - [Delete the cluster](#delete-the-cluster)
+- [Delete the cluster](#delete-the-cluster)
 
 
 # Introduction
@@ -296,7 +296,9 @@ kubectl create ns echoserver3
 kubectl apply -f 03-alb-targetgroupbinding/echoserver3.yaml
 ```
 
-## Delete the cluster
+# Delete the cluster
+
+When you are done testing, you can delete the cluster with `eksctl`:
 
 ```sh
 $ eksctl delete cluster -f cluster.yaml
