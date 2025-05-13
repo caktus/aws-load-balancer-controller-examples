@@ -1,4 +1,19 @@
+<!-- omit in toc -->
 # Migrating to the AWS Load Balancer Controller
+
+- [Scenarios](#scenarios)
+  - [1. Application Load Balancer (ALB) with combined Ingress and ACM certificates](#1-application-load-balancer-alb-with-combined-ingress-and-acm-certificates)
+    - [Create resources](#create-resources)
+    - [Validate resources](#validate-resources)
+  - [Deploy the echoserver resources](#deploy-the-echoserver-resources)
+  - [External ALB](#external-alb)
+  - [Scenarios](#scenarios-1)
+    - [03 IngressGroup](#03-ingressgroup)
+    - [04 TargetGroupBinding](#04-targetgroupbinding)
+  - [Delete the cluster](#delete-the-cluster)
+
+
+## Introduction
 
 Caktus uses the [NGINX Ingress
 Controller](https://github.com/kubernetes/ingress-nginx) to manage ingress
@@ -32,9 +47,14 @@ PATH_add bin
 Install lastest `eksctl` to create the cluster:
 
 ```sh
-$ curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Darwin_arm64.tar.gz"
-$ tar -xzf eksctl_Darwin_arm64.tar.gz -C /tmp && rm eksctl_Darwin_arm64.tar.gz
-$ mv /tmp/eksctl bin
+curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Darwin_arm64.tar.gz"
+tar -xzf eksctl_Darwin_arm64.tar.gz -C /tmp && rm eksctl_Darwin_arm64.tar.gz
+mv /tmp/eksctl bin
+```
+
+Check the version:
+
+```sh
 $ eksctl version
 0.207.0
 ```
@@ -42,17 +62,21 @@ $ eksctl version
 Install kubectl:
 
 ```sh
-$ export KUBECTL_VERSION=1.31.8
-$ curl -sLO "https://dl.k8s.io/release/v$KUBECTL_VERSION/bin/darwin/arm64/kubectl"
-$ chmod +x ./kubectl
-$ mv ./kubectl bin
+export KUBECTL_VERSION=1.31.8
+curl -sLO "https://dl.k8s.io/release/v$KUBECTL_VERSION/bin/darwin/arm64/kubectl"
+chmod +x ./kubectl
+mv ./kubectl bin
+```
+
+Check the version:
+
+```sh
 $ kubectl version --client
 Client Version: v1.31.8
 Kustomize Version: v5.4.2
 ```
 
-
-## Create an EKS cluster
+## Create and configure the EKS cluster
 
 Create a cluster with `eksctl`:
 
@@ -69,8 +93,7 @@ $ eksctl utils associate-iam-oidc-provider \
     --approve
 ```
 
-
-## Install the AWS Load Balancer Controller
+### Install the AWS Load Balancer Controller
 
 Create a policy for the AWS Load Balancer Controller:
 
@@ -103,27 +126,65 @@ $ helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
 Verify the installation:
 
 ```sh
-$ kubectl get deployment -n kube-system aws-load-balancer-controller
 ```
 
-## Install cert-manager
+# Scenarios
 
-Install cert-manager with Helm:
+## 1. Application Load Balancer (ALB) with combined Ingress and ACM certificates
+
+This scenarios follows the [EchoServer
+example](https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/examples/echo_server/)
+from the AWS Load Balancer Controller, but extends it to support two hosts
+(echoserver1a and echoserver1b) via host-based routing and ACM TLS certificates.
+
+| Description                   | Value                            |
+| ----------------------------- | -------------------------------- |
+| Load balancer managed by      | AWS Load Balancer Controller     |
+| Load balancer type            | Application Load Balancer (ALB)  |
+| TLS termination               | Application Load Balancer (ALB)  |
+| TLS certificates              | AWS Certificate Manager (ACM)    |
+
+Prerequisites:
+* Create a wildcard certificate in ACM for the domain `*.saguaro.caktustest.net`
+  and update the annotation in the `echoserver-ingress.yaml` file with the ARN
+  of the certificate.
+
+### Create resources
+
+Create the echoserver resources:
 
 ```sh
-$ helm repo add jetstack https://charts.jetstack.io --force-update
-$ helm install \
-  cert-manager jetstack/cert-manager \
-  --namespace cert-manager \
-  --create-namespace \
-  --version v1.17.2 \
-  --set crds.enabled=true
+kubectl create ns echoserver1
+kubectl apply -f 01-alb-ingress-acm/echoserver1a.yaml
+kubectl apply -f 01-alb-ingress-acm/echoserver1b.yaml
+# The Ingress creates the ALB in AWS
+kubectl apply -f 01-alb-ingress-acm/echoserver-ingress.yaml
 ```
 
-Install the cert-manager issuer:
+Update DNS entries to point to the ALB:
 
 ```sh
-$ kubectl apply -f cert-manager-issuer.yaml
+# Get the ALB DNS name
+kubectl -n echoserver1 get ing -o jsonpath='{.items[].status.loadBalancer.ingress[].hostname}'
+# Update DNS entries in Route53 in the AWS console
+```
+
+### Validate resources
+
+Valid certificate:
+
+```sh
+curl -v https://echoserver1a.saguaro.caktustest.net/ 2>&1 | grep -i Certificate
+* TLSv1.2 (IN), TLS handshake, Certificate (11):
+* Server certificate:
+*  SSL certificate verify ok.
+```
+
+HTTP redirect to HTTPS:
+
+```sh
+curl -sL http://echoserver1a.saguaro.caktustest.net/ | grep -i Hostname
+Hostname: echoserver1a-55d9576c47-vvk4d
 ```
 
 ## Deploy the echoserver resources

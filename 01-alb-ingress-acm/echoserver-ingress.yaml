@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: echoserver
-  namespace: echoserver
+  name: echoserver1
+  namespace: echoserver1
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/tags: Environment=dev,Team=test
@@ -12,28 +12,28 @@ metadata:
 spec:
   ingressClassName: alb
   rules:
-    - host: echoserver1.saguaro.caktustest.net
+    - host: echoserver1a.saguaro.caktustest.net
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: echoserver1
+                name: echoserver1a
                 port:
                   number: 80
-    - host: echoserver2.saguaro.caktustest.net
+    - host: echoserver1b.saguaro.caktustest.net
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: echoserver2
+                name: echoserver1b
                 port:
                   number: 80
   tls:
   - hosts:
-      - echoserver1.saguaro.caktustest.net
-      - echoserver2.saguaro.caktustest.net
+      - echoserver1a.saguaro.caktustest.net
+      - echoserver1b.saguaro.caktustest.net
     secretName: "echoserver-tls"
