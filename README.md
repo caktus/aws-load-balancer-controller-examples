@@ -9,9 +9,9 @@
   - [1. Application Load Balancer (ALB) with combined Ingress and ACM certificates](#1-application-load-balancer-alb-with-combined-ingress-and-acm-certificates)
     - [Create resources](#create-resources)
     - [Validate resources](#validate-resources)
-  - [Deploy the echoserver resources](#deploy-the-echoserver-resources)
-  - [External ALB](#external-alb)
-  - [Scenarios](#scenarios-1)
+  - [2. Application Load Balancer (ALB) with IngressGroup and ACM certificates](#2-application-load-balancer-alb-with-ingressgroup-and-acm-certificates)
+    - [Create resources](#create-resources-1)
+    - [Validate resources](#validate-resources-1)
     - [03 IngressGroup](#03-ingressgroup)
     - [04 TargetGroupBinding](#04-targetgroupbinding)
   - [Delete the cluster](#delete-the-cluster)
@@ -186,33 +186,68 @@ curl -sL http://echoserver1a.saguaro.caktustest.net/ | grep -i Hostname
 Hostname: echoserver1a-55d9576c47-vvk4d
 ```
 
-## Deploy the echoserver resources
+## 2. Application Load Balancer (ALB) with IngressGroup and ACM certificates
+
+Following the previous example, this scenario uses:
+
+* The
+  [group.name](https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/guide/ingress/ingress_class/#specgroup)
+  annotation so that the Ingress resources are grouped together in the same ALB.
+  This is useful when you want to share the same ALB for multiple Ingress
+  resources and avoid creating multiple ALBs for each Ingress resource.
+* Individual ACM certificates for each Ingress resource, so we can support both
+  the ``www`` and apex domains.
+
+| Description                   | Value                            |
+| ----------------------------- | -------------------------------- |
+| Load balancer managed by      | AWS Load Balancer Controller     |
+| Load balancer type            | Application Load Balancer (ALB)  |
+| TLS termination               | Application Load Balancer (ALB)  |
+| TLS certificates              | AWS Certificate Manager (ACM)    |
+
+Prerequisites:
+* Create a wildcard certificate in ACM for the domain `*.saguaro.caktustest.net`
+  and update the annotation in the `echoserver-ingress.yaml` file with the ARN
+  of the certificate.
+* Create a certificate in ACM for the domain `echoserver1a.saguaro.caktustest.net`
+
+### Create resources
+
+Create the echoserver resources:
 
 ```sh
-$ kubectl create ns echoserver
-$ kubectl apply -f echoserver1.yaml
-$ kubectl apply -f echoserver2.yaml
-$ kubectl apply -f echoserver-ingress.yaml
+kubectl create ns echoserver2
+# The first Ingress creates the ALB in AWS
+kubectl apply -f 02-alb-ingressgroup-acm/echoserver2a.yaml
+kubectl apply -f 02-alb-ingressgroup-acm/echoserver2b.yaml
 ```
 
+Update DNS entries to point to the ALB. Both Ingress resources will share the
+same ALB:
+
 ```sh
-curl -v https://echoserver2.saguaro.caktustest.net/ 2>&1 | grep -i Certificate
+# Get the ALB DNS name
+kubectl -n echoserver2 get ing
+# Update DNS entries in Route53 in the AWS console
+```
+
+### Validate resources
+
+Valid certificate:
+
+```sh
+curl -v https://echoserver2b.saguaro.caktustest.net/ 2>&1 | grep -i Certificate
 * TLSv1.2 (IN), TLS handshake, Certificate (11):
 * Server certificate:
 *  SSL certificate verify ok.
 ```
 
-## External ALB
+HTTP redirect to HTTPS:
 
 ```sh
-aws elbv2 create-load-balancer \
-    --name my-load-balancer \
-    --type network \
-    --subnets subnet-0e3f5cac72EXAMPLE
+curl -sL http://echoserver2b.saguaro.caktustest.net/ | grep -i Hostname
+Hostname: echoserver2b-6f64f579cc-f2spf
 ```
-
-
-## Scenarios
 
 ### 03 IngressGroup
 
