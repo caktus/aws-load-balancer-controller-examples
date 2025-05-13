@@ -12,8 +12,8 @@
   - [2. Application Load Balancer (ALB) with IngressGroup and ACM certificates](#2-application-load-balancer-alb-with-ingressgroup-and-acm-certificates)
     - [Create resources](#create-resources-1)
     - [Validate resources](#validate-resources-1)
-    - [03 IngressGroup](#03-ingressgroup)
-    - [04 TargetGroupBinding](#04-targetgroupbinding)
+  - [3. Application Load Balancer (ALB) with TargetGroupBinding (IN PROGRESS)](#3-application-load-balancer-alb-with-targetgroupbinding-in-progress)
+    - [Create resources](#create-resources-2)
   - [Delete the cluster](#delete-the-cluster)
 
 
@@ -45,7 +45,10 @@ Add the following environment variables to your shell:
 ```sh
 export AWS_PROFILE=saguaro-cluster
 export KUBECONFIG=$PWD/.kube/config
+export AWS_REGION=us-east-2
+export AWS_DEFAULT_REGION=$AWS_REGION
 PATH_add bin
+layout python python3.12
 ```
 
 Install lastest `eksctl` to create the cluster:
@@ -209,7 +212,9 @@ Prerequisites:
 * Create a wildcard certificate in ACM for the domain `*.saguaro.caktustest.net`
   and update the annotation in the `echoserver-ingress.yaml` file with the ARN
   of the certificate.
-* Create a certificate in ACM for the domain `echoserver1a.saguaro.caktustest.net`
+* Create a certificate in ACM for the domain
+  `echoserver2b.saguaro.caktustest.net` and
+  `www.echoserver2b.saguaro.caktustest.net` in AWS ACM
 
 ### Create resources
 
@@ -249,18 +254,46 @@ curl -sL http://echoserver2b.saguaro.caktustest.net/ | grep -i Hostname
 Hostname: echoserver2b-6f64f579cc-f2spf
 ```
 
-### 03 IngressGroup
+## 3. Application Load Balancer (ALB) with TargetGroupBinding (IN PROGRESS)
+
+This scenario extends the previous example to:
+
+* Create the ALB with Cloudformation, not using the AWS Load Balancer
+  Controller.
+* Use `TargetGroupBinding` resources to bind the Service to an existing ALB.
+
+| Description                   | Value                            |
+| ----------------------------- | -------------------------------- |
+| Load balancer managed by      | AWS CloudFormation               |
+| Load balancer type            | Application Load Balancer (ALB)  |
+| TLS termination               | Application Load Balancer (ALB)  |
+| TLS certificates              | AWS Certificate Manager (ACM)    |
+
+### Create resources
+
+Install Python requirements, generate the CloudFormation template, and create
+the ALB:
 
 ```sh
-kubectl apply -f 03-alb-ingressgroup-acm/echoserver1.yaml
-curl -v https://echoserver1.saguaro.caktustest.net/ 2>&1 | grep -i Certificate
+# Install Python requirements
+pip install -r 03-alb-targetgroupbinding/requirements.txt
+# Generate the CloudFormation template to create the ALB ourselves
+python 03-alb-targetgroupbinding/alb.py > 03-alb-targetgroupbinding/alb.yaml
+# Create the ALB with CloudFormation
+aws cloudformation create-stack \
+    --region us-east-2 \
+    --stack-name staging \
+    --template-body file://03-alb-targetgroupbinding/alb.yaml
 ```
 
-### 04 TargetGroupBinding
+Update the `targetGroupARN` in the `03-alb-targetgroupbinding/echoserver3.yaml`
+file with the ARN of the target group created by CloudFormation.
+
+Now apply the echoserver3 and `TargetGroupBinding` resources:
 
 ```sh
-kubectl apply -f 04-alb-targetgroupbinding/echoverver4.yaml
-curl -v https://echoserver4.saguaro.caktustest.net/ 2>&1 | grep -i Certificate
+kubectl create ns echoserver3
+kubectl apply -f 03-alb-targetgroupbinding/echoserver3.yaml
 ```
 
 ## Delete the cluster
