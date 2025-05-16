@@ -1,0 +1,76 @@
+- name: deploy ALB target groups and rules
+  hosts: localhost
+  gather_facts: false
+  vars:
+    ansible_connection: local
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    env: "{{ lookup('ansible.builtin.env', 'ENV') }}"
+    aws_profile: "{{ lookup('ansible.builtin.env', 'AWS_PROFILE') }}"
+  tasks:
+    # get ALB information created from CloudFormation
+    - name: get ALB information
+      amazon.aws.elb_application_lb_info:
+        names: "{{ env }}-cluster-lb"
+        profile: "{{ aws_profile }}"
+      register: albs_info
+
+    - set_fact:
+        alb_info: "{{ albs_info.load_balancers[0] }}"
+
+    - name: create echoserver3a target group
+      community.aws.elb_target_group:
+        name: echoserver3a
+        port: 8080
+        protocol: http
+        state: present
+        target_type: ip
+        vpc_id: "{{ alb_info.vpc_id }}"
+      register: echoserver3a_target_group
+
+    - name: create echoserver3b target group
+      community.aws.elb_target_group:
+        name: echoserver3b
+        port: 80
+        protocol: http
+        state: present
+        target_type: ip
+        vpc_id: "{{ alb_info.vpc_id }}"
+      register: echoserver3b_target_group    
+
+    # manage ALB listeners and rules
+    - amazon.aws.elb_application_lb:
+        state: present
+        name: "{{ alb_info.load_balancer_name }}"
+        subnets:
+          - "{{ alb_info.availability_zones[0].subnet_id }}"
+          - "{{ alb_info.availability_zones[1].subnet_id }}"
+        security_groups:
+          - "{{ alb_info.security_groups[0] }}"
+        listeners:
+          - Protocol: HTTPS
+            Port: 443
+            DefaultActions:
+              - Type: forward
+                TargetGroupName: target-group-https
+            Certificates:
+              - CertificateArn: arn:aws:acm:us-east-2:472354598015:certificate/7f3bd8ff-6f56-499c-a4f1-d48de4e01c1b
+            SslPolicy: ELBSecurityPolicy-2015-05
+            Rules:
+              - Conditions:
+                  - Field: path-pattern
+                    Values: ['/*']
+                  - Field: host-header
+                    Values: ['echoserver3a.saguaro.caktustest.net']
+                Priority: '1'
+                Actions:
+                  - TargetGroupName: echoserver3a
+                    Type: forward
+              - Conditions:
+                  - Field: path-pattern
+                    Values: ['/*']
+                  - Field: host-header
+                    Values: ['echoserver3b.saguaro.caktustest.net']
+                Priority: '2'
+                Actions:
+                  - TargetGroupName: echoserver3b
+                    Type: forward

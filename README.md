@@ -14,6 +14,7 @@
     - [Validate resources](#validate-resources-1)
   - [3. Application Load Balancer (ALB) with TargetGroupBinding (IN PROGRESS)](#3-application-load-balancer-alb-with-targetgroupbinding-in-progress)
     - [Create resources](#create-resources-2)
+    - [Validate resources](#validate-resources-2)
 - [Delete the cluster](#delete-the-cluster)
 
 
@@ -37,6 +38,12 @@ Kubernetes controller that provisions AWS load balancers for Kubernetes services
 and ingress resources. This controller is the successor to the AWS ALB Ingress
 Controller and is now the recommended way to manage AWS load balancers in
 Kubernetes.
+
+I had trouble finding complete examples (with Kubernetes manifests) that
+demonstrated how to use the controller to implement common use cases at Caktus,
+such as using multiple TLS certificates, using the same LB for multiple Ingress
+resources, managing HTTP redirects, and handling both www and apex domains, so I
+decided to create this repository to document our findings and provide examples.
 
 # Prerequisites
 
@@ -241,7 +248,7 @@ kubectl -n echoserver2 get ing
 Valid certificate:
 
 ```sh
-curl -v https://echoserver2b.saguaro.caktustest.net/ 2>&1 | grep -i Certificate
+curl -v https://www.echoserver2b.saguaro.caktustest.net/ 2>&1 | grep -i Certificate
 * TLSv1.2 (IN), TLS handshake, Certificate (11):
 * Server certificate:
 *  SSL certificate verify ok.
@@ -250,13 +257,18 @@ curl -v https://echoserver2b.saguaro.caktustest.net/ 2>&1 | grep -i Certificate
 HTTP redirect to HTTPS:
 
 ```sh
-curl -sL http://echoserver2b.saguaro.caktustest.net/ | grep -i Hostname
+curl -sL http://www.echoserver2b.saguaro.caktustest.net/ | grep -i Hostname
 Hostname: echoserver2b-6f64f579cc-f2spf
 ```
 
 ## 3. Application Load Balancer (ALB) with TargetGroupBinding (IN PROGRESS)
 
-This scenario extends the previous example to:
+This scenario provisions the ALB with CloudFormation outside of the Kubernetes
+cluster and uses the `TargetGroupBinding` resource to bind the Kubernetes
+``Service`` to ALB Target Groups. This allows you to manage the ALB lifecycle
+independently of the Kubernetes cluster, so cluster resources can be recreated
+or deleted without affecting the ALB and you can gurantee the DNS name of the
+ALB remains constant, which may be important for production workloads.
 
 * Create the ALB with Cloudformation, not using the AWS Load Balancer
   Controller.
@@ -275,26 +287,108 @@ Install Python requirements, generate the CloudFormation template, and create
 the ALB:
 
 ```sh
+export ENV=staging
 # Install Python requirements
 pip install -r 03-alb-targetgroupbinding/requirements.txt
 # Generate the CloudFormation template to create the ALB ourselves
 python 03-alb-targetgroupbinding/alb.py > 03-alb-targetgroupbinding/alb.yaml
 # Create the ALB with CloudFormation
 aws cloudformation create-stack \
-    --region us-east-2 \
-    --stack-name staging \
+    --region $REGION \
+    --stack-name $AWS_REGION \
     --template-body file://03-alb-targetgroupbinding/alb.yaml
+# Wait for the stack to be created
+aws cloudformation wait stack-create-complete \
+    --region $AWS_REGION \
+    --stack-name $ENV
+# Get the ALB Arn
+export LB_VPC=$(aws elbv2 describe-load-balancers \
+    --names=$ENV-cluster-lb \
+    --region $AWS_REGION \
+    --query="LoadBalancers[0].VpcId" \
+    --output text
+)
 ```
 
-Update the `targetGroupARN` in the `03-alb-targetgroupbinding/echoserver3.yaml`
-file with the ARN of the target group created by CloudFormation.
+In order to create the `TargetGroupBinding` resource, we need to create the
+Target Group in AWS first. We'll use the `ip` target type here, so that we don't
+need to manage or look up `NodePorts` for external access.
 
-Now apply the echoserver3 and `TargetGroupBinding` resources:
+```sh
+# Create a Target Group for the echoserver3a Service
+export TARGET_GROUP_ARN_ECHOSERVER3A=$(aws elbv2 create-target-group \
+    --name echoserver3a \
+    --protocol HTTP \
+    --target-type ip \
+    --port 8080 \
+    --region $AWS_REGION \
+    --vpc-id $LB_VPC \
+    --query "TargetGroups[0].TargetGroupArn" \
+    --output text
+)
+# And one for the echoserver3b Service, which uses port 80
+# to illustrate
+export TARGET_GROUP_ARN_ECHOSERVER3B=$(aws elbv2 create-target-group \
+    --name echoserver3b \
+    --protocol HTTP \
+    --target-type ip \
+    --port 80 \
+    --region $AWS_REGION \
+    --vpc-id $LB_VPC \
+    --query "TargetGroups[0].TargetGroupArn" \
+    --output text
+)
+```
+
+Next we'll create the `TargetGroupBinding` (and `Service`) resources for
+echoserver3. These resources bind the Kubernetes `Service` to the Target Groups
+in AWS created above. The `TargetGroupBinding` resource is used to register the
+Kubernetes Pods with the Target Group, so that traffic can be routed to them.
+
+We'll also create `ClusterIP` type Services for the echoserver3. The `Service`
+is still used by the AWS Load Balancer Controller to discover which Pods to
+register with the Target Group, based on label selectors.
+
+Apply the manifests:
 
 ```sh
 kubectl create ns echoserver3
-kubectl apply -f 03-alb-targetgroupbinding/echoserver3.yaml
+# Now we can create the echoserver3a Service and TargetGroupBinding resource
+kubectl apply -f 03-alb-targetgroupbinding/echoserver3a.yaml
+# And the echoserver3b Service and TargetGroupBinding resource
+kubectl apply -f 03-alb-targetgroupbinding/echoserver3b.yaml
 ```
+
+But we're not done! A Rule is needed to route traffic to the Target Groups.
+We'll use the AWS CLI to create the Rule for the ALB. The Rule will route
+traffic to the Target Groups based on the `Host` header and attach it to the ALB
+listeners created in the CloudFormation template above.
+
+
+```sh
+aws elbv2 create-rule \
+    --listener-arn arn:aws:elasticloadbalancing:us-west-2:123456789012:listener/app/my-load-balancer/50dc6c495c0c9188/f2f7dc8efc522ab2 \
+    --priority 5 \
+    --conditions file://conditions-pattern.json
+    --actions Type=forward,TargetGroupArn=arn:aws:elasticloadbalancing:us-west-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067
+```
+
+
+
+
+```sh
+curl -v https://echoserver3a.saguaro.caktustest.net/ 2>&1 | grep -i Certificate
+* (304) (IN), TLS handshake, Certificate (11):
+* Server certificate:
+*  SSL certificate verify ok.
+```
+
+
+
+### Validate resources
+
+
+
 
 # Delete the cluster
 

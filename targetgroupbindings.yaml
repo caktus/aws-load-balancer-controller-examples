@@ -1,0 +1,173 @@
+apiVersion: v1
+items:
+- apiVersion: elbv2.k8s.aws/v1beta1
+  kind: TargetGroupBinding
+  metadata:
+    annotations:
+      elbv2.k8s.aws/checkpoint: B_Cw8W4fBx7xn6-BzBe4BDWrtTcidMl5HpGrD8uvvkQ/5cbfweuc0P725Vvf7aETUV1pLErl1GZ2krOkwiMFqGQ
+      elbv2.k8s.aws/checkpoint-timestamp: "1747154894"
+    creationTimestamp: "2025-05-13T16:48:13Z"
+    finalizers:
+    - elbv2.k8s.aws/resources
+    generation: 1
+    labels:
+      ingress.k8s.aws/stack-name: echoserver1
+      ingress.k8s.aws/stack-namespace: echoserver1
+    name: k8s-echoserv-echoserv-2f8b58a42d
+    namespace: echoserver1
+    resourceVersion: "1368134"
+    uid: fedc1166-b1c4-499a-9569-fd3dc2cec33e
+  spec:
+    ipAddressType: ipv4
+    networking:
+      ingress:
+      - from:
+        - securityGroup:
+            groupID: sg-0851ec2604d29281d
+        ports:
+        - port: 30372
+          protocol: TCP
+    serviceRef:
+      name: echoserver1a
+      port: 80
+    targetGroupARN: arn:aws:elasticloadbalancing:us-east-2:472354598015:targetgroup/k8s-echoserv-echoserv-2f8b58a42d/32c53699da2c2bab
+    targetType: instance
+    vpcID: vpc-087ccad6480af2d0a
+  status:
+    observedGeneration: 1
+- apiVersion: elbv2.k8s.aws/v1beta1
+  kind: TargetGroupBinding
+  metadata:
+    annotations:
+      elbv2.k8s.aws/checkpoint: bCENl0yYEpe7sRe6KII3K2WP-z1VDjizQoGB1nuVB00/yrMhcYE-r-o5glfXzNLUVofXzn4-mc8SK3y72bobMqo
+      elbv2.k8s.aws/checkpoint-timestamp: "1747154895"
+    creationTimestamp: "2025-05-13T16:48:14Z"
+    finalizers:
+    - elbv2.k8s.aws/resources
+    generation: 1
+    labels:
+      ingress.k8s.aws/stack-name: echoserver1
+      ingress.k8s.aws/stack-namespace: echoserver1
+    name: k8s-echoserv-echoserv-93312737f3
+    namespace: echoserver1
+    resourceVersion: "1368141"
+    uid: 0fe83abe-d945-4116-9b9b-757f2e2df372
+  spec:
+    ipAddressType: ipv4
+    networking:
+      ingress:
+      - from:
+        - securityGroup:
+            groupID: sg-0851ec2604d29281d
+        ports:
+        - port: 30145
+          protocol: TCP
+    serviceRef:
+      name: echoserver1b
+      port: 80
+    targetGroupARN: arn:aws:elasticloadbalancing:us-east-2:472354598015:targetgroup/k8s-echoserv-echoserv-93312737f3/cdaae3dda8cc6234
+    targetType: instance
+    vpcID: vpc-087ccad6480af2d0a
+  status:
+    observedGeneration: 1
+- apiVersion: elbv2.k8s.aws/v1beta1
+  kind: TargetGroupBinding
+  metadata:
+    annotations:
+      elbv2.k8s.aws/checkpoint: dyt91i4hdiVgoVDRKy7tfdU4Elj_nln0V7JByPgeWPs/3c61KMYjv7WNE1P-U6uMuF6G4-QigczoTOFndgr_K4E
+      elbv2.k8s.aws/checkpoint-timestamp: "1747156518"
+    creationTimestamp: "2025-05-13T17:15:17Z"
+    finalizers:
+    - elbv2.k8s.aws/resources
+    generation: 1
+    labels:
+      ingress.k8s.aws/stack: alb.ingress-group
+    name: k8s-echoserv-echoserv-69497dbc00
+    namespace: echoserver2
+    resourceVersion: "1373332"
+    uid: 6b3de66f-e3d0-42ae-aecb-7222c2b76bb8
+  spec:
+    ipAddressType: ipv4
+    networking:
+      ingress:
+      - from:
+        - securityGroup:
+            groupID: sg-0851ec2604d29281d
+        ports:
+        - port: 31891
+          protocol: TCP
+    serviceRef:
+      name: echoserver2b
+      port: 80
+    targetGroupARN: arn:aws:elasticloadbalancing:us-east-2:472354598015:targetgroup/k8s-echoserv-echoserv-69497dbc00/8f3319465fab8eec
+    targetType: instance
+    vpcID: vpc-087ccad6480af2d0a
+  status:
+    observedGeneration: 1
+- apiVersion: elbv2.k8s.aws/v1beta1
+  kind: TargetGroupBinding
+  metadata:
+    annotations:
+      elbv2.k8s.aws/checkpoint: 9UKJxLk9kl6xhEvMq-F1_4KznmeFfUuFCgMCZK8l1b4/LuSQz-skkO7IG7F7i2WPj5nnFsP1Q4rB4VEw76ZcI-Q
+      elbv2.k8s.aws/checkpoint-timestamp: "1747156109"
+    creationTimestamp: "2025-05-13T17:08:28Z"
+    finalizers:
+    - elbv2.k8s.aws/resources
+    generation: 1
+    labels:
+      ingress.k8s.aws/stack: alb.ingress-group
+    name: k8s-echoserv-echoserv-776cf26253
+    namespace: echoserver2
+    resourceVersion: "1371984"
+    uid: a714e6ca-2bb9-4090-a631-760414948517
+  spec:
+    ipAddressType: ipv4
+    networking:
+      ingress:
+      - from:
+        - securityGroup:
+            groupID: sg-0851ec2604d29281d
+        ports:
+        - port: 31733
+          protocol: TCP
+    serviceRef:
+      name: echoserver2a
+      port: 80
+    targetGroupARN: arn:aws:elasticloadbalancing:us-east-2:472354598015:targetgroup/k8s-echoserv-echoserv-776cf26253/ebcd9604a3b4dcbd
+    targetType: instance
+    vpcID: vpc-087ccad6480af2d0a
+  status:
+    observedGeneration: 1
+- apiVersion: elbv2.k8s.aws/v1beta1
+  kind: TargetGroupBinding
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"elbv2.k8s.aws/v1beta1","kind":"TargetGroupBinding","metadata":{"annotations":{},"name":"echoserver3a","namespace":"echoserver3"},"spec":{"networking":{"ingress":[{"from":[{"securityGroup":{"groupID":"sg-05bf45e8cb4f315d6"}}],"ports":[{"port":80,"protocol":"TCP"}]}]},"serviceRef":{"name":"echoserver3a","port":80},"targetGroupARN":"arn:aws:elasticloadbalancing:us-east-2:472354598015:targetgroup/target-group-https/36b3b4c99679ddeb"}}
+    creationTimestamp: "2025-05-13T19:13:07Z"
+    finalizers:
+    - elbv2.k8s.aws/resources
+    generation: 1
+    name: echoserver3a
+    namespace: echoserver3
+    resourceVersion: "1395530"
+    uid: 21298607-b84c-4499-ad7a-5d5b36fd2bea
+  spec:
+    ipAddressType: ipv4
+    networking:
+      ingress:
+      - from:
+        - securityGroup:
+            groupID: sg-05bf45e8cb4f315d6
+        ports:
+        - port: 80
+          protocol: TCP
+    serviceRef:
+      name: echoserver3a
+      port: 80
+    targetGroupARN: arn:aws:elasticloadbalancing:us-east-2:472354598015:targetgroup/target-group-https/36b3b4c99679ddeb
+    targetType: instance
+    vpcID: vpc-087ccad6480af2d0a
+kind: List
+metadata:
+  resourceVersion: ""
